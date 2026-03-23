@@ -1,0 +1,498 @@
+/* =======================
+   Remote Robot Lawn Mower Controller Stylesheet
+   ======================= */
+
+:root {
+    --primary-color: #2ecc71;
+    --primary-dark: #27ae60;
+    --secondary-color: #3498db;
+    --danger-color: #e74c3c;
+    --warning-color: #f39c12;
+    --bg-dark: #1a1a1a;
+    --bg-light: #2d2d2d;
+    --text-primary: #ffffff;
+    --text-secondary: #bdc3c7;
+    --border-color: #444;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-light) 100%);
+}
+
+/* ====================== HEADER ====================== */
+.header {
+    background-color: var(--bg-light);
+    border-bottom: 2px solid var(--primary-color);
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+}
+
+.header h1 {
+    font-size: 28px;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.connected {
+    background-color: var(--primary-color);
+    box-shadow: 0 0 10px var(--primary-color);
+}
+
+.status-dot.disconnected {
+    background-color: var(--danger-color);
+    box-shadow: 0 0 10px var(--danger-color);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* ====================== MAIN CONTENT ====================== */
+.main-content {
+    display: flex;
+    flex: 1;
+    gap: 20px;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* Video Section */
+.video-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.video-container {
+    background-color: var(--bg-light);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: var(--shadow);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.video-container h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: var(--primary-color);
+}
+
+.video-feed-wrapper {
+    flex: 1;
+    position: relative;
+    background-color: #000;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
+
+.video-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.video-overlay {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.timestamp {
+    color: var(--primary-color);
+}
+
+/* Control Section */
+.control-section {
+    flex: 0 0 auto;
+    width: 380px;
+    display: flex;
+    flex-direction: column;
+}
+
+.control-panel {
+    background-color: var(--bg-light);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
+}
+
+.control-panel h2 {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
+}
+
+.control-panel h3 {
+    font-size: 14px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ====================== TOGGLES ====================== */
+.toggle-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.toggle-container:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.toggle-label {
+    flex: 1;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.toggle-input {
+    display: none;
+}
+
+.toggle-switch {
+    width: 40px;
+    height: 24px;
+    background-color: #555;
+    border-radius: 12px;
+    position: relative;
+    transition: background-color 0.3s;
+    border: 2px solid transparent;
+}
+
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: var(--text-primary);
+    border-radius: 50%;
+    top: 1px;
+    left: 1px;
+    transition: transform 0.3s;
+}
+
+.toggle-input:checked + .toggle-switch {
+    background-color: var(--primary-color);
+}
+
+.toggle-input:checked + .toggle-switch::after {
+    transform: translateX(16px);
+}
+
+.toggle-status {
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-width: 60px;
+    text-align: right;
+}
+
+/* ====================== SLIDERS ====================== */
+.slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.slider-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.slider-header label {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.slider-value {
+    background-color: var(--primary-color);
+    color: var(--bg-dark);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+}
+
+.slider::-webkit-slider-thumb:active {
+    transform: scale(1.2);
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+}
+
+.slider::-moz-range-thumb:active {
+    transform: scale(1.2);
+}
+
+.slider-range {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+/* ====================== DIRECTION CONTROL ====================== */
+.direction-control {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 10px;
+}
+
+.direction-control label {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.direction-buttons {
+    display: flex;
+    gap: 8px;
+    flex-direction: column;
+}
+
+.direction-btn {
+    padding: 10px;
+    border: 2px solid var(--primary-color);
+    background-color: transparent;
+    color: var(--primary-color);
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 13px;
+}
+
+.direction-btn:hover {
+    background-color: rgba(46, 204, 113, 0.1);
+}
+
+.direction-btn.active {
+    background-color: var(--primary-color);
+    color: var(--bg-dark);
+    box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+}
+
+/* ====================== STATUS DISPLAY ====================== */
+.status-display {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 15px;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 6px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.status-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.status-value {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+/* ====================== FOOTER ====================== */
+.footer {
+    background-color: var(--bg-light);
+    border-top: 1px solid var(--border-color);
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.footer-content p {
+    margin: 2px 0;
+}
+
+/* ====================== RESPONSIVE DESIGN ====================== */
+@media (max-width: 1024px) {
+    .main-content {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .control-section {
+        width: 100%;
+    }
+
+    .control-panel {
+        max-height: 400px;
+    }
+
+    .video-feed-wrapper {
+        min-height: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    .header h1 {
+        font-size: 22px;
+    }
+
+    .status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .direction-buttons {
+        flex-direction: row;
+    }
+
+    .direction-btn {
+        flex: 1;
+    }
+}
+
+/* ====================== SCROLLBAR STYLING ====================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}

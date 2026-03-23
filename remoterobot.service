@@ -1,0 +1,16 @@
+[Unit]
+Description=Remote Robot Lawn Mower Controller Web Server
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/RemoteRobot
+Environment="PATH=/home/pi/RemoteRobot/venv/bin"
+ExecStart=/home/pi/RemoteRobot/venv/bin/python3 /home/pi/RemoteRobot/app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Robot Lawn Mower Controller</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🤖 Remote Robot Lawn Mower Controller</h1>
+            <div class="connection-status">
+                <span id="connection-indicator" class="status-dot disconnected"></span>
+                <span id="connection-text">Connecting...</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Video Feed Section -->
+            <section class="video-section">
+                <div class="video-container">
+                    <h2>Live Webcam Feed</h2>
+                    <div class="video-feed-wrapper">
+                        <img id="video-feed" src="/video_feed" alt="Live Webcam Feed" class="video-feed">
+                        <div class="video-overlay">
+                            <span id="video-timestamp" class="timestamp">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Control Panel Section -->
+            <section class="control-section">
+                <div class="control-panel">
+                    <h2>Motor Controls</h2>
+
+                    <!-- Toggle Controls -->
+                    <div class="toggle-group">
+                        <label class="toggle-container">
+                            <span class="toggle-label">Motor Enable</span>
+                            <input type="checkbox" id="motor-enable-toggle" class="toggle-input">
+                            <span class="toggle-switch"></span>
+                            <span class="toggle-status" id="motor-enable-status">Disabled</span>
+                        </label>
+
+                        <label class="toggle-container">
+                            <span class="toggle-label">Mower Blade Run</span>
+                            <input type="checkbox" id="blade-enable-toggle" class="toggle-input">
+                            <span class="toggle-switch"></span>
+                            <span class="toggle-status" id="blade-enable-status">Off</span>
+                        </label>
+                    </div>
+
+                    <!-- Slider Controls -->
+                    <div class="slider-group">
+                        <!-- RPM Slider -->
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <label for="rpm-slider">RPM</label>
+                                <span class="slider-value" id="rpm-value">0</span>
+                            </div>
+                            <input type="range" id="rpm-slider" class="slider" min="0" max="3000" value="0" step="100">
+                            <div class="slider-range">
+                                <span>0</span>
+                                <span>3000</span>
+                            </div>
+                        </div>
+
+                        <!-- Acceleration Slider -->
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <label for="acceleration-slider">Acceleration</label>
+                                <span class="slider-value" id="acceleration-value">50</span>
+                            </div>
+                            <input type="range" id="acceleration-slider" class="slider" min="0" max="100" value="50" step="5">
+                            <div class="slider-range">
+                                <span>0</span>
+                                <span>100</span>
+                            </div>
+                        </div>
+
+                        <!-- Deceleration Slider -->
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <label for="deceleration-slider">Deceleration</label>
+                                <span class="slider-value" id="deceleration-value">50</span>
+                            </div>
+                            <input type="range" id="deceleration-slider" class="slider" min="0" max="100" value="50" step="5">
+                            <div class="slider-range">
+                                <span>0</span>
+                                <span>100</span>
+                            </div>
+                        </div>
+
+                        <!-- Direction Control -->
+                        <div class="direction-control">
+                            <label>Direction</label>
+                            <div class="direction-buttons">
+                                <button class="direction-btn" id="forward-btn" data-direction="forward">
+                                    ⬆️ Forward
+                                </button>
+                                <button class="direction-btn" id="stop-btn" data-direction="stop">
+                                    ⏹️ Stop
+                                </button>
+                                <button class="direction-btn" id="reverse-btn" data-direction="reverse">
+                                    ⬇️ Reverse
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Display -->
+                    <div class="status-display">
+                        <h3>Current Status</h3>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <span class="status-label">RPM:</span>
+                                <span class="status-value" id="status-rpm">0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Acceleration:</span>
+                                <span class="status-value" id="status-accel">50</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Deceleration:</span>
+                                <span class="status-value" id="status-decel">50</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Motor:</span>
+                                <span class="status-value" id="status-motor">Disabled</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Blade:</span>
+                                <span class="status-value" id="status-blade">Off</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Direction:</span>
+                                <span class="status-value" id="status-direction">Stop</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p>Remote Robot Lawn Mower Controller v1.0</p>
+                <p id="last-update">Last update: Never</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
