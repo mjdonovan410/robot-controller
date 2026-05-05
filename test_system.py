@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
 Remote Robot Lawn Mower Controller - Diagnostic and Test Script
-Use this to verify all components are working correctly
+
+This script is a technician-facing smoke test for the development machine. It
+verifies Python dependencies, basic hardware availability, serial transport,
+and a few project-level imports before the full web application is started.
 """
 
 import sys
@@ -106,10 +109,10 @@ def test_camera():
         return False
 
 def test_serial_ports():
-    """Test Arduino serial connections"""
+    """Probe the expected USB serial devices used by the Arduino boards."""
     import glob
     
-    # Find USB serial devices
+    # The project expects Arduinos to appear as /dev/ttyUSB* on Linux.
     ports = glob.glob('/dev/ttyUSB*')
     
     if len(ports) == 0:
@@ -119,7 +122,7 @@ def test_serial_ports():
     print_result("Arduino Serial Ports", len(ports) >= 2, 
                 f"Found {len(ports)} device(s): {', '.join(ports)}")
     
-    # Try to connect to each one
+    # A successful open/close cycle confirms the port is accessible to the user.
     for port in ports[:2]:  # Test first two
         try:
             ser = serial.Serial(port, 115200, timeout=1)
@@ -132,7 +135,7 @@ def test_serial_ports():
     return len(ports) >= 1
 
 def test_imports():
-    """Test project module imports"""
+    """Confirm the custom project modules import without side effects."""
     try:
         from modules.camera_controller import CameraController
         print_result("CameraController Import", True)
@@ -160,12 +163,11 @@ def test_imports():
     return cam_ok and motor_ok and arduino_ok
 
 def test_flask_app():
-    """Test Flask app structure"""
+    """Import the Flask app and perform a lightweight route smoke test."""
     try:
         from app import app, motor_state
         print_result("Flask App Import", True)
         
-        # Test routes
         with app.test_client() as client:
             response = client.get('/')
             if response.status_code == 200:
@@ -179,13 +181,13 @@ def test_flask_app():
         return False
 
 def test_motor_controller():
-    """Test motor controller functionality"""
+    """Exercise the pure-Python motor validation layer."""
     try:
         from modules.motor_controller import MotorController, MotorCommand
         
         mc = MotorController()
         
-        # Test valid command
+        # First confirm that a normal in-range command is accepted.
         cmd = MotorCommand(
             motor_id=1,
             rpm=1500,
@@ -198,10 +200,11 @@ def test_motor_controller():
         valid, msg = mc.validate_command(cmd)
         print_result("Motor Command Validation", valid, msg or "Forward 1500 RPM valid")
         
-        # Test invalid command
+        # Then confirm the validator still rejects values beyond the configured
+        # RPM ceiling so application-side clamping is not the only safeguard.
         bad_cmd = MotorCommand(
             motor_id=1,
-            rpm=5000,  # Too high
+            rpm=5001,
             direction='forward',
             acceleration=50,
             deceleration=50,
@@ -218,7 +221,7 @@ def test_motor_controller():
         return False
 
 def test_arduino_json_format():
-    """Test Arduino JSON command format"""
+    """Validate the compact JSON structure sent over the serial link."""
     try:
         command = {
             'rpm': 1500,
@@ -238,7 +241,7 @@ def test_arduino_json_format():
         return False
 
 def test_manual_serial_send():
-    """Test manual serial communication"""
+    """Send one direct serial command to the first detected Arduino port."""
     import glob
     
     ports = glob.glob('/dev/ttyUSB*')
@@ -254,7 +257,7 @@ def test_manual_serial_send():
         ser = serial.Serial(port, 115200, timeout=1)
         time.sleep(0.5)  # Wait for Arduino to initialize
         
-        # Send a test command
+        # This payload matches the structure used by the application itself.
         test_cmd = json.dumps({
             'rpm': 500,
             'dir': 'forward',
@@ -266,7 +269,8 @@ def test_manual_serial_send():
         ser.write((test_cmd + '\n').encode())
         time.sleep(0.2)
         
-        # Try to read response
+        # A response is helpful but not mandatory because some sketches only log
+        # after certain commands or may not echo anything at all.
         if ser.in_waiting > 0:
             response = ser.readline().decode().strip()
             print(f"       ✓ Response: {response}")
@@ -284,7 +288,7 @@ def test_manual_serial_send():
         return False
 
 def interactive_test():
-    """Interactive component testing"""
+    """Allow a developer to poke the pure-Python motor state interactively."""
     print_header("INTERACTIVE TESTING")
     
     try:
@@ -304,7 +308,7 @@ def interactive_test():
             choice = input("\nSelect option (1-6): ").strip()
             
             if choice == '1':
-                rpm = int(input("Enter RPM (0-3000): "))
+                rpm = int(input("Enter RPM (0-5000): "))
                 mc.update_motor_state(1, rpm=rpm)
                 print(f"Motor 1 RPM set to {rpm}")
             
@@ -335,24 +339,24 @@ def interactive_test():
         print(f"Error: {e}")
 
 def generate_report():
-    """Generate test report"""
+    """Print basic environment metadata for troubleshooting sessions."""
     print_header("DIGITAL DIAGNOSTICS REPORT")
     print(f"Timestamp: {datetime.now().isoformat()}")
     print(f"Python: {sys.version}")
     print(f"Platform: {sys.platform}")
 
 def main():
-    """Run all tests"""
+    """Run the full diagnostic sequence in a human-readable order."""
     print("\n")
     print("╔════════════════════════════════════════════════════════════╗")
     print("║   Remote Robot Lawn Mower Controller - Diagnostic Tool    ║")
     print("╚════════════════════════════════════════════════════════════╝")
     
-    # System Requirements
+    # Start with the Python/runtime prerequisites before touching hardware.
     print_header("1. SYSTEM REQUIREMENTS")
     test_python_version()
     
-    # Dependencies
+    # Import checks catch missing packages before the app fails at startup.
     print_header("2. PYTHON DEPENDENCIES")
     dep_results = [
         test_opencv(),
@@ -361,21 +365,21 @@ def main():
         test_pyserial()
     ]
     
-    # Hardware
+    # Hardware tests are read-only probes and do not move motors.
     print_header("3. HARDWARE")
     hw_results = [
         test_camera(),
         test_serial_ports()
     ]
     
-    # Project Structure
+    # Project structure tests verify internal imports and route wiring.
     print_header("4. PROJECT STRUCTURE")
     proj_results = [
         test_imports(),
         test_flask_app()
     ]
     
-    # Functionality
+    # Functionality tests exercise pure-software command formatting/validation.
     print_header("5. FUNCTIONALITY TESTS")
     func_results = [
         test_motor_controller(),
@@ -383,7 +387,6 @@ def main():
         test_manual_serial_send()
     ]
     
-    # Summary
     print_header("SUMMARY")
     all_passed = all(dep_results + hw_results + proj_results + func_results)
     
@@ -398,7 +401,7 @@ def main():
         print("  - Serial: ls /dev/ttyUSB* (check Arduino connections)")
         print("  - Packages: pip install -r requirements.txt")
     
-    # Offer interactive testing
+    # Offer a manual follow-up only after automated diagnostics finish.
     if input("\nRun interactive tests? (y/n): ").lower() == 'y':
         interactive_test()
     

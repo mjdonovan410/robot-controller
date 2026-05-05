@@ -1,5 +1,7 @@
-"""
-Configuration settings for Remote Robot Lawn Mower Controller
+"""Centralized configuration values for the robot controller application.
+
+These constants define the runtime defaults and safety limits shared by the web
+server, browser UI expectations, and the hardware control layer.
 """
 
 # Flask Configuration
@@ -16,7 +18,7 @@ CAMERA_FPS = 30
 CAMERA_ENABLED = True
 
 # Motor Configuration
-MAX_RPM = 3000
+MAX_RPM = 10500
 MIN_RPM = 0
 MAX_ACCELERATION = 100
 MAX_DECELERATION = 100
@@ -44,5 +46,5 @@ AUTO_DISABLE_ON_CONNECTION_LOSS = True
 CONNECTION_LOSS_TIMEOUT = 5  # seconds
 
 # Motor Control Limits
-MIN_RPM_FOR_MOVEMENT = 100  # Minimum RPM to send to Arduino
-RPM_RAMP_RATE = 50  # RPM change per update cycle (optional)
+MIN_RPM_FOR_MOVEMENT = 100  # Ignore tiny commands below this when needed.
+RPM_RAMP_RATE = 50  # Reserved for higher-level software ramping if added later.

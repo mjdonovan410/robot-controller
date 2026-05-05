@@ -1,6 +1,10 @@
 """
 Motor Controller Module
-Handles motor state management and control logic
+
+This module centralizes command validation and simple in-memory motor state for
+the two-wheel drivetrain. It does not talk to hardware directly; instead it
+provides a structured place for validation and future higher-level control
+policies.
 """
 
 import logging
@@ -11,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class MotorCommand:
-    """Represents a motor command"""
+    """Structured representation of a single motor command."""
     motor_id: int
     rpm: int
     direction: str  # forward, reverse, stop
@@ -21,16 +25,16 @@ class MotorCommand:
 
 
 class MotorController:
-    """Manages motor control logic and state"""
+    """Validate and store the latest logical state for each motor."""
     
-    # Motor constants
-    MAX_RPM = 3000
+    # System-wide command limits used by validation and state clamping.
+    MAX_RPM = 10500
     MIN_RPM = 0
     MAX_ACCELERATION = 100
     MAX_DECELERATION = 100
     
     def __init__(self):
-        """Initialize motor controller"""
+        """Create default motor state for both wheels."""
         self.motor_states = {
             1: {
                 'rpm': 0,
@@ -93,7 +97,7 @@ class MotorController:
             return False
         
         try:
-            # Validate and update values
+            # Each field is clamped independently so partial updates remain safe.
             if 'rpm' in kwargs:
                 rpm = max(self.MIN_RPM, min(kwargs['rpm'], self.MAX_RPM))
                 self.motor_states[motor_id]['rpm'] = rpm
@@ -141,7 +145,7 @@ class MotorController:
         return {mid: state.copy() for mid, state in self.motor_states.items()}
     
     def emergency_stop(self):
-        """Emergency stop all motors"""
+        """Force both stored motor states to a stopped, de-energized state."""
         logger.warning("EMERGENCY STOP triggered!")
         
         for motor_id in self.motor_states:

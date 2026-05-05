@@ -1,10 +1,12 @@
 """
 Camera Controller Module
-Handles USB webcam streaming via OpenCV
+
+This module owns the USB webcam capture loop. A background thread reads frames
+from OpenCV as fast as the camera provides them, and request handlers pull a
+copy of the most recent frame whenever the browser asks for video.
 """
 
 import cv2
-import threading
 import logging
 from threading import Thread, Lock
 
@@ -12,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class CameraController:
-    """Manages USB webcam capture and frame delivery"""
+    """Capture frames continuously and expose the latest frame to callers."""
     
     def __init__(self, camera_index=0, width=640, height=480, fps=30):
         """
@@ -38,7 +40,7 @@ class CameraController:
         self._start_capture()
     
     def _init_camera(self):
-        """Initialize OpenCV camera"""
+        """Open the camera and configure low-latency capture settings."""
         try:
             self.cap = cv2.VideoCapture(self.camera_index)
             
@@ -46,7 +48,8 @@ class CameraController:
                 logger.error(f"Failed to open camera at index {self.camera_index}")
                 return
             
-            # Set camera properties
+            # Request the desired capture settings. The device may not honor
+            # every value exactly, but these calls express the intended mode.
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
             self.cap.set(cv2.CAP_PROP_FPS, self.fps)
@@ -59,7 +62,7 @@ class CameraController:
             self.cap = None
     
     def _start_capture(self):
-        """Start the frame capture thread"""
+        """Start the background capture loop if camera initialization succeeded."""
         if self.cap is None:
             logger.warning("Cannot start capture - camera not initialized")
             return
@@ -70,15 +73,12 @@ class CameraController:
         logger.info("Camera capture thread started")
     
     def _capture_loop(self):
-        """Continuously capture frames from the camera"""
+        """Continuously refresh the latest frame buffer from the camera."""
         while self.running:
             try:
                 ret, frame = self.cap.read()
                 
                 if ret:
-                    # Flip frame horizontally if needed (comment out if not needed)
-                    # frame = cv2.flip(frame, 1)
-                    
                     with self.frame_lock:
                         self.frame = frame
                 else:
@@ -88,12 +88,7 @@ class CameraController:
                 logger.error(f"Error in capture loop: {e}")
     
     def get_frame(self):
-        """
-        Get the current frame
-        
-        Returns:
-            numpy array: The current video frame, or None if unavailable
-        """
+        """Return a copy of the latest captured frame, if one is available."""
         with self.frame_lock:
             if self.frame is not None:
                 return self.frame.copy()
@@ -104,7 +99,7 @@ class CameraController:
         return self.running and self.cap is not None and self.cap.isOpened()
     
     def release(self):
-        """Stop capture and release camera resources"""
+        """Stop capture and release the OpenCV device handle."""
         self.running = False
         
         if self.capture_thread:

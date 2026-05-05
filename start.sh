@@ -1,15 +1,17 @@
 #!/bin/bash
 
 # Remote Robot Lawn Mower Controller - Startup Script
-# Run this script to start the web server on your Raspberry Pi
+#
+# This helper bootstraps the Python environment, performs a couple of quick
+# device checks, and then starts the Flask/Socket.IO application.
 
-# Colors for output
+# ANSI colors are used only to make startup diagnostics easier to scan.
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Project directory
+# Resolve all paths relative to this script so it can be launched from any cwd.
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$PROJECT_DIR/venv"
 
@@ -18,16 +20,16 @@ echo -e "${GREEN}Remote Robot Lawn Mower Controller${NC}"
 echo -e "${GREEN}================================${NC}"
 echo ""
 
-# Check if virtual environment exists
+# Create the virtual environment on first run so the project can be started on
+# a fresh Raspberry Pi without a manual setup step.
 if [ ! -d "$VENV_DIR" ]; then
     echo -e "${YELLOW}Creating Python virtual environment...${NC}"
     python3 -m venv "$VENV_DIR"
     
-    # Activate and upgrade pip
+    # Build the environment before installing requirements into it.
     source "$VENV_DIR/bin/activate"
     pip install --upgrade pip
     
-    # Install requirements
     echo -e "${YELLOW}Installing dependencies...${NC}"
     pip install -r "$PROJECT_DIR/requirements.txt"
     echo -e "${GREEN}Dependencies installed${NC}"
@@ -35,11 +37,10 @@ else
     echo -e "${GREEN}Virtual environment found${NC}"
 fi
 
-# Activate virtual environment
 echo -e "${YELLOW}Activating virtual environment...${NC}"
 source "$VENV_DIR/bin/activate"
 
-# Check if all modules can be imported
+# Import checks provide a fast failure mode before the full application starts.
 echo -e "${YELLOW}Checking dependencies...${NC}"
 python3 << EOF
 import sys
@@ -59,7 +60,8 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Get Raspberry Pi IP address
+# Show the first detected host IP so operators know which URL to open from a
+# phone or laptop on the same network.
 PI_IP=$(hostname -I | awk '{print $1}')
 echo ""
 echo -e "${GREEN}Configuration:${NC}"
@@ -68,7 +70,7 @@ echo "  Python Version: $(python3 --version)"
 echo "  Raspberry Pi IP: $PI_IP"
 echo ""
 
-# Check for camera
+# Probe the default camera index used by the application.
 echo -e "${YELLOW}Checking for camera...${NC}"
 if python3 << EOF
 import cv2
@@ -89,7 +91,7 @@ else
     echo ""
 fi
 
-# Check for Arduino connections
+# Count expected Arduino USB serial devices before launching the app.
 echo -e "${YELLOW}Checking for Arduino connections...${NC}"
 USB_DEVICES=$(ls /dev/ttyUSB* 2>/dev/null | wc -l)
 if [ "$USB_DEVICES" -ge 2 ]; then
@@ -111,8 +113,8 @@ echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
 echo ""
 
-# Start the application
+# Launch the Flask/Socket.IO server in the activated environment.
 python3 "$PROJECT_DIR/app.py"
 
-# Deactivate virtual environment on exit
+# Cleanly deactivate the shell environment when the server exits.
 deactivate

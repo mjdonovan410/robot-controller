@@ -1,5 +1,7 @@
-"""
-Remote Robot Controllers Module Package
+"""Convenience exports for the project's controller modules.
+
+Importing from ``modules`` keeps the Flask app code concise while still making
+the package structure explicit.
 """
 
 from .camera_controller import CameraController

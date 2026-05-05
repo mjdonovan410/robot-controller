@@ -1,20 +1,24 @@
 """
 Arduino Controller Module
-Handles serial communication with Arduino boards for motor control
+
+This module owns the serial links to the two Arduino motor controllers. It
+accepts high-level wheel commands from the Flask app, serializes them to the
+compact JSON format expected by the sketches, and exposes helper methods for
+reading back diagnostic messages from each board.
 """
 
 import serial
 import logging
 import json
 from threading import Thread, Lock
-from queue import Queue
+from queue import Queue, Empty
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 
 class ArduinoController:
-    """Manages serial communication with Arduino motor controllers"""
+    """Manage the pair of Arduino serial links used for left/right wheel control."""
     
     def __init__(self, motor1_port='/dev/ttyUSB0', motor2_port='/dev/ttyUSB1', baud_rate=115200):
         """
@@ -42,7 +46,7 @@ class ArduinoController:
         self._start_sender_thread()
     
     def _init_serial_connections(self):
-        """Initialize serial connections to both Arduinos"""
+        """Open both serial ports and remember whether the pair is fully available."""
         try:
             # Motor 1
             self.ser1 = serial.Serial(
@@ -74,20 +78,36 @@ class ArduinoController:
             logger.warning("One or more Arduino connections failed - running in simulation mode")
     
     def _start_sender_thread(self):
-        """Start the command sender thread"""
+        """Start the background thread that drains the outgoing command queue."""
         self.running = True
         self.sender_thread = Thread(target=self._sender_loop, daemon=True)
         self.sender_thread.start()
         logger.info("Arduino sender thread started")
     
     def _sender_loop(self):
-        """Process queued commands and send to Arduinos"""
+        """Continuously dequeue commands and push them to the correct serial port.
+
+        The loop coalesces bursts of queued commands and only sends the latest
+        command per motor. This prevents command backlog latency when the
+        browser is producing frequent updates (e.g., gamepad polling).
+        """
         while self.running:
             try:
-                command = self.command_queue.get(timeout=1)
-                self._send_command(command)
-            except:
-                pass
+                command = self.command_queue.get(timeout=0.05)
+            except Empty:
+                continue
+
+            latest_by_motor = {command['motor_id']: command}
+
+            while True:
+                try:
+                    queued_command = self.command_queue.get_nowait()
+                    latest_by_motor[queued_command['motor_id']] = queued_command
+                except Empty:
+                    break
+
+            for motor_id in sorted(latest_by_motor.keys()):
+                self._send_command(latest_by_motor[motor_id])
     
     def send_motor_command(self, motor_id, rpm, direction, contactor_enabled=False, 
                           acceleration=50, deceleration=50):
@@ -96,11 +116,11 @@ class ArduinoController:
         
         Args:
             motor_id: Motor ID (1 or 2)
-            rpm: RPM value (0-3000)
+            rpm: RPM value (0-10500)
             direction: 'forward', 'reverse', or 'stop'
             contactor_enabled: Enable mower blade contactor
-            acceleration: Acceleration value (0-100)
-            deceleration: Deceleration value (0-100)
+            acceleration: Acceleration value (0-300)
+            deceleration: Deceleration value (0-300)
         """
         command = {
             'motor_id': motor_id,
@@ -115,12 +135,7 @@ class ArduinoController:
         self.command_queue.put(command)
     
     def _send_command(self, command):
-        """
-        Send a command to the appropriate Arduino
-        
-        Args:
-            command: Command dictionary
-        """
+        """Serialize one queued command and write it to the correct Arduino."""
         try:
             motor_id = command['motor_id']
             ser = self.ser1 if motor_id == 1 else self.ser2
@@ -129,8 +144,8 @@ class ArduinoController:
                 logger.debug(f"Arduino for motor {motor_id} not available - simulating command")
                 return
             
-            # Format command as JSON for Arduino
-            # Expected format: {"rpm":1500,"dir":"forward","contactor":true,"accel":50,"decel":50}
+            # The Arduino sketch expects compact JSON terminated by a newline so
+            # it can recover whole command frames even on a small serial buffer.
             command_json = {
                 'rpm': int(command['rpm']),
                 'dir': command['direction'],
@@ -139,8 +154,9 @@ class ArduinoController:
                 'decel': int(command['deceleration'])
             }
             
-            # Add newline for Arduino serial parsing
-            command_str = json.dumps(command_json) + '\n'
+            # Keep frames short to reduce the chance of merged or truncated
+            # packets when commands are sent at a high rate.
+            command_str = json.dumps(command_json, separators=(',', ':')) + '\n'
             
             with self.send_lock:
                 ser.write(command_str.encode())
@@ -150,15 +166,7 @@ class ArduinoController:
             logger.error(f"Error sending command to motor {command.get('motor_id')}: {e}")
     
     def read_arduino_response(self, motor_id):
-        """
-        Read response from Arduino (for debugging)
-        
-        Args:
-            motor_id: Motor ID (1 or 2)
-        
-        Returns:
-            Response string or None
-        """
+        """Return a single newline-delimited diagnostic line from one Arduino."""
         try:
             ser = self.ser1 if motor_id == 1 else self.ser2
             
@@ -181,7 +189,7 @@ class ArduinoController:
         return self.connected
     
     def close_all(self):
-        """Close all serial connections"""
+        """Stop the sender thread and close both serial ports safely."""
         self.running = False
         
         if self.ser1:

@@ -18,9 +18,9 @@
             </div>
         </header>
 
-        <!-- Main Content -->
+        <!-- Main workspace: live video on the left, controls and telemetry on the right. -->
         <main class="main-content">
-            <!-- Video Feed Section -->
+            <!-- MJPEG video stream delivered by the Flask /video_feed route. -->
             <section class="video-section">
                 <div class="video-container">
                     <h2>Live Webcam Feed</h2>
@@ -33,18 +33,25 @@
                 </div>
             </section>
 
-            <!-- Control Panel Section -->
+            <!-- Manual controls, gamepad status, and serial diagnostics. -->
             <section class="control-section">
                 <div class="control-panel">
                     <h2>Motor Controls</h2>
 
-                    <!-- Toggle Controls -->
+                    <div class="gamepad-card">
+                        <h3>XBOX Controller Mode</h3>
+                        <p id="gamepad-status-text">Gamepad: Not connected</p>
+                        <p id="gamepad-trigger-debug" class="gamepad-debug">LT: 0.00 | RT: 0.00 | Turn X: 0.00</p>
+                        <p class="gamepad-hint">RT = Forward speed, LT = Reverse speed (0 to Max RPM), A (hold) = Blade, Left Stick X = Pivot Turn</p>
+                    </div>
+
+                    <!-- High-level safety toggles. The motor toggle acts as a software interlock. -->
                     <div class="toggle-group">
                         <label class="toggle-container">
                             <span class="toggle-label">Motor Enable</span>
-                            <input type="checkbox" id="motor-enable-toggle" class="toggle-input">
+                            <input type="checkbox" id="motor-enable-toggle" class="toggle-input" checked>
                             <span class="toggle-switch"></span>
-                            <span class="toggle-status" id="motor-enable-status">Disabled</span>
+                            <span class="toggle-status" id="motor-enable-status">Enabled</span>
                         </label>
 
                         <label class="toggle-container">
@@ -55,7 +62,7 @@
                         </label>
                     </div>
 
-                    <!-- Slider Controls -->
+                    <!-- Command-shaping controls used by both the manual UI and gamepad path. -->
                     <div class="slider-group">
                         <!-- RPM Slider -->
                         <div class="slider-container">
@@ -63,10 +70,22 @@
                                 <label for="rpm-slider">RPM</label>
                                 <span class="slider-value" id="rpm-value">0</span>
                             </div>
-                            <input type="range" id="rpm-slider" class="slider" min="0" max="3000" value="0" step="100">
+                            <input type="range" id="rpm-slider" class="slider" min="0" max="10500" value="0" step="100">
                             <div class="slider-range">
                                 <span>0</span>
-                                <span>3000</span>
+                                <span>10500</span>
+                            </div>
+                        </div>
+
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <label for="max-rpm-slider">Max RPM (Gamepad)</label>
+                                <span class="slider-value" id="max-rpm-value">10500</span>
+                            </div>
+                            <input type="range" id="max-rpm-slider" class="slider" min="100" max="10500" value="10500" step="100">
+                            <div class="slider-range">
+                                <span>100</span>
+                                <span>10500</span>
                             </div>
                         </div>
 
@@ -76,7 +95,7 @@
                                 <label for="acceleration-slider">Acceleration</label>
                                 <span class="slider-value" id="acceleration-value">50</span>
                             </div>
-                            <input type="range" id="acceleration-slider" class="slider" min="0" max="100" value="50" step="5">
+                            <input type="range" id="acceleration-slider" class="slider" min="0" max="100" value="50" step="1">
                             <div class="slider-range">
                                 <span>0</span>
                                 <span>100</span>
@@ -89,7 +108,7 @@
                                 <label for="deceleration-slider">Deceleration</label>
                                 <span class="slider-value" id="deceleration-value">50</span>
                             </div>
-                            <input type="range" id="deceleration-slider" class="slider" min="0" max="100" value="50" step="5">
+                            <input type="range" id="deceleration-slider" class="slider" min="0" max="100" value="50" step="1">
                             <div class="slider-range">
                                 <span>0</span>
                                 <span>100</span>
@@ -113,13 +132,17 @@
                         </div>
                     </div>
 
-                    <!-- Status Display -->
+                    <!-- Live state mirrored back from the backend after every accepted command. -->
                     <div class="status-display">
                         <h3>Current Status</h3>
                         <div class="status-grid">
                             <div class="status-item">
                                 <span class="status-label">RPM:</span>
                                 <span class="status-value" id="status-rpm">0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Max RPM:</span>
+                                <span class="status-value" id="status-max-rpm">10500</span>
                             </div>
                             <div class="status-item">
                                 <span class="status-label">Acceleration:</span>
@@ -141,13 +164,65 @@
                                 <span class="status-label">Direction:</span>
                                 <span class="status-value" id="status-direction">Stop</span>
                             </div>
+                            <div class="status-item">
+                                <span class="status-label">Control:</span>
+                                <span class="status-value" id="status-control-mode">Manual</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Speed %:</span>
+                                <span class="status-value" id="status-speed-percent">0%</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Left Wheel:</span>
+                                <span class="status-value" id="status-left-wheel">Stop 0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Right Wheel:</span>
+                                <span class="status-value" id="status-right-wheel">Stop 0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Gamepad:</span>
+                                <span class="status-value" id="status-gamepad">Disconnected</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="arduino-display">
+                        <h3>Arduino Communication</h3>
+                        <div class="status-grid arduino-grid">
+                            <div class="status-item">
+                                <span class="status-label">Link:</span>
+                                <span class="status-value" id="status-arduino-link">Disconnected</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Comms:</span>
+                                <span class="status-value" id="status-arduino-comms">Idle</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Motor 1:</span>
+                                <span class="status-value" id="status-arduino-m1">Offline</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Motor 2:</span>
+                                <span class="status-value" id="status-arduino-m2">Offline</span>
+                            </div>
+                        </div>
+                        <div class="arduino-meta">
+                            <p id="status-arduino-last-tx">Last TX: Never</p>
+                            <p id="status-arduino-last-rx">Last RX: Never</p>
+                            <p id="status-arduino-error">Last Error: None</p>
+                        </div>
+
+                        <div class="arduino-log-wrap">
+                            <h4>Command Log</h4>
+                            <ul id="arduino-command-log" class="arduino-command-log"></ul>
                         </div>
                     </div>
                 </div>
             </section>
         </main>
 
-        <!-- Footer -->
+        <!-- Footer holds lightweight runtime status rather than navigation. -->
         <footer class="footer">
             <div class="footer-content">
                 <p>Remote Robot Lawn Mower Controller v1.0</p>
